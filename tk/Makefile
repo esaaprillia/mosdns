@@ -23,6 +23,7 @@ PKG_LICENSE:=TCL
 PKG_LICENSE_FILES:=license.terms
 PKG_CPE_ID:=cpe:/a:tcl_tk:tcl_tk
 
+PKG_BUILD_DEPENDS:=HOST_OS_MACOS:fakeuname/host
 PKG_FIXUP:=autoreconf
 PKG_INSTALL:=1
 PKG_BUILD_PARALLEL:=1
@@ -30,6 +31,10 @@ HOST_BUILD_PARALLEL:=1
 
 include $(INCLUDE_DIR)/host-build.mk
 include $(INCLUDE_DIR)/package.mk
+
+ifeq ($(CONFIG_HOST_OS_MACOS),y)
+    include ../../utils/fakeuname/fakeuname.mk
+endif
 
 define Package/tk
   SUBMENU:=Tcl
@@ -52,13 +57,19 @@ endef
 CONFIGURE_PATH := unix
 
 CONFIGURE_VARS += \
-	tk_cv_strtod_unbroken=ok
+	$(if $(CONFIG_HOST_OS_MACOS),PATH=$(FAKEUNAME_PATH):$(PATH)) \
+	tcl_cv_strtod_unbroken=ok
 
 CONFIGURE_ARGS += \
 	--enable-threads \
 	--with-tcl="$(STAGING_DIR)/usr/lib"
 
 MAKE_PATH := unix
+
+define Build/Prepare
+	$(call Build/Prepare/Default)
+	rm -rf $(PKG_BUILD_DIR)/pkgs/*
+endef
 
 define Build/InstallDev
 	$(INSTALL_DIR) $(1)/usr/include
